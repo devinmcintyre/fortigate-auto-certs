@@ -1,6 +1,6 @@
 # FortiGate automatic certificate push and renewals
 
-Automate certificate issuance and deployment to FortiGate firewalls using [acme.sh](https://github.com/acmesh-official/acme.sh).  These scripts are built to support multiple domains and multiple FortiGate certificate renewals from one linux box.
+Automate certificate issuance and deployment to FortiGate firewalls using [acme.sh](https://github.com/acmesh-official/acme.sh).  These scripts are built to support multiple domains and FortiGates from one linux box.  This enables the FortiGate to act as a reverse proxy with SSL termination using the [virtual server feature](https://docs.fortinet.com/document/fortigate/7.6.6/administration-guide/713497/virtual-server-load-balance).  The FortiGate can handle [HTTP to HTTPS redirection](https://docs.fortinet.com/document/fortigate/7.6.6/administration-guide/304594/http-to-https-redirect-for-load-balancing) as well.
 
 ## Overview
 
