@@ -1,6 +1,6 @@
 # FortiGate automatic certificate push and renewals
 
-Automate certificate issuance and deployment to FortiGate firewalls using [acme.sh](https://github.com/acmesh-official/acme.sh).
+Automate certificate issuance and deployment to FortiGate firewalls using [acme.sh](https://github.com/acmesh-official/acme.sh).  These scripts are built to support multiple domains and multiple FortiGate certificate renewals from one linux box.
 
 ## Overview
 
