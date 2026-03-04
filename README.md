@@ -1,6 +1,6 @@
-# FortiGate Auto Certs
+# FortiGate automatic certificate push and renewals
 
-Automate Let's Encrypt certificate issuance and deployment to FortiGate firewalls using [acme.sh](https://github.com/acmesh-official/acme.sh).
+Automate certificate issuance and deployment to FortiGate firewalls using [acme.sh](https://github.com/acmesh-official/acme.sh).
 
 ## Overview
 
