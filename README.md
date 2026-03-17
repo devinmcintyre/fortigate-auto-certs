@@ -79,11 +79,11 @@ Replace `--dns dns_azure` with your preferred challenge method. On each renewal,
 The Python script performs the following steps against the FortiGate REST API:
 
 1. Checks if the certificate is currently set as the admin HTTPS certificate — if so, temporarily switches to `self-sign`.
-2. Finds any firewall VIPs and SSL/SSH inspection profiles using the old certificate and temporarily switches them to `Fortinet_SSL`.
+2. Finds any firewall VIPs and SSL/SSH inspection profiles SSLVPN Portal and User-Auth Portal using the old certificate and temporarily switches them to `Fortinet_SSL`.
 3. Deletes the old certificate.
 4. Uploads the new PKCS#12 certificate.
 5. Restores the admin certificate (if it was previously using this cert).
-6. Restores all VIPs and SSL/SSH profiles to the new certificate.
+6. Restores all VIPs, SSL/SSH profiles, SSLVPN, User-Auth to the new certificate.
 
 ## File Layout
 
