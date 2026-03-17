@@ -43,6 +43,40 @@ def get_current_admin(args):
     return global_cfg.get("results", {}).get("admin-server-cert")
 
 
+def get_current_sslvpn_cert(args):
+    """
+    Return the current SSL-VPN servercert name.
+    """
+    _, sslvpn_cfg = api_request(
+        "GET", args,
+        "/api/v2/cmdb/vpn.ssl/settings",
+        params={"datasource": 1, "vdom": "root"}
+    )
+    results = sslvpn_cfg.get("results", {})
+    servercert = results.get("servercert")
+    # servercert can be a dict {"q_origin_key": "..."} or a plain string depending on firmware
+    if isinstance(servercert, dict):
+        return servercert.get("q_origin_key")
+    return servercert
+
+
+def get_current_user_auth_cert(args):
+    """
+    Return the current user auth-cert name.
+    """
+    _, user_cfg = api_request(
+        "GET", args,
+        "/api/v2/cmdb/user/setting",
+        params={"datasource": 1, "with_meta": 1, "vdom": "root"}
+    )
+    results = user_cfg.get("results", {})
+    auth_cert = results.get("auth-cert")
+    # auth-cert can be a dict {"q_origin_key": "..."} or a plain string depending on firmware
+    if isinstance(auth_cert, dict):
+        return auth_cert.get("q_origin_key")
+    return auth_cert
+
+
 def reset_admin_cert(args):
     """
     Temporarily switch admin-server-cert to 'self-sign'.
@@ -53,6 +87,26 @@ def reset_admin_cert(args):
         json={"admin-server-cert": "self-sign"}
     )
     print("Temporarily switched admin-server-cert to 'self-sign'.")
+
+
+def reset_sslvpn_cert(args):
+    """
+    Temporarily switch SSL-VPN servercert to 'Fortinet_Factory'.
+    Returns the original cert name so it can be restored later.
+    """
+    current = get_current_sslvpn_cert(args)
+    if current != args.certName:
+        print(f"SSL-VPN servercert is '{current}', not '{args.certName}' – skipping reset.")
+        return None
+
+    api_request(
+        "PUT", args,
+        "/api/v2/cmdb/vpn.ssl/settings",
+        params={"datasource": 1, "vdom": "root"},
+        json={"servercert": {"q_origin_key": "Fortinet_Factory"}}
+    )
+    print(f"Temporarily switched SSL-VPN servercert to 'Fortinet_Factory'.")
+    return current
 
 
 def reset_general_cert(args):
@@ -160,9 +214,56 @@ def restore_admin_cert(args):
     print(f"Restored admin-server-cert to '{args.certName}'.")
 
 
+def restore_sslvpn_cert(args):
+    """
+    Restore SSL-VPN servercert to the renewed certificate.
+    """
+    api_request(
+        "PUT", args,
+        "/api/v2/cmdb/vpn.ssl/settings",
+        params={"datasource": 1, "vdom": "root"},
+        json={"servercert": {"q_origin_key": args.certName}}
+    )
+    print(f"Restored SSL-VPN servercert to '{args.certName}'.")
+
+
+def reset_user_auth_cert(args):
+    """
+    Temporarily switch user/setting auth-cert to 'Fortinet_Factory'.
+    Returns the original cert name so it can be restored later, or None if not in use.
+    """
+    current = get_current_user_auth_cert(args)
+    if current != args.certName:
+        print(f"User auth-cert is '{current}', not '{args.certName}' – skipping reset.")
+        return None
+
+    api_request(
+        "PUT", args,
+        "/api/v2/cmdb/user/setting",
+        params={"datasource": 1, "with_meta": 1, "vdom": "root"},
+        json={"auth-cert": {"q_origin_key": "Fortinet_Factory"}}
+    )
+    print("Temporarily switched user auth-cert to 'Fortinet_Factory'.")
+    return current
+
+
+def restore_user_auth_cert(args):
+    """
+    Restore user/setting auth-cert to the renewed certificate.
+    """
+    api_request(
+        "PUT", args,
+        "/api/v2/cmdb/user/setting",
+        params={"datasource": 1, "with_meta": 1, "vdom": "root"},
+        json={"auth-cert": {"q_origin_key": args.certName}}
+    )
+    print(f"Restored user auth-cert to '{args.certName}'.")
+
+
 def restore_general_cert(args, vip_items, prof_items):
     """
-    Restore VIPs and profiles to use the renewed certificate."""
+    Restore VIPs and profiles to use the renewed certificate.
+    """
     for name, is_list in vip_items:
         payload = {"ssl-certificate": [{"name": args.certName}]} if is_list else {"ssl-certificate": args.certName}
         api_request(
@@ -193,15 +294,32 @@ def main():
     args = parser.parse_args()
     args.certName = args.certName[:35]
 
-    current_admin = get_current_admin(args)
+    # --- Pre-flight: check what currently uses this cert ---
+    current_admin    = get_current_admin(args)
+    sslvpn_reset     = reset_sslvpn_cert(args)      # returns cert name if reset was needed, else None
+    user_auth_reset  = reset_user_auth_cert(args)   # returns cert name if reset was needed, else None
+
     if current_admin == args.certName:
         reset_admin_cert(args)
+
     vip_items, prof_items = reset_general_cert(args)
+
+    # --- Replace the certificate ---
     delete_cert(args)
     upload_cert(args)
+
+    # --- Restore everything ---
     if current_admin == args.certName:
         restore_admin_cert(args)
+
+    if sslvpn_reset is not None:
+        restore_sslvpn_cert(args)
+
+    if user_auth_reset is not None:
+        restore_user_auth_cert(args)
+
     restore_general_cert(args, vip_items, prof_items)
+
 
 if __name__ == "__main__":
     main()
